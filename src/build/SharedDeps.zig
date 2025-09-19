@@ -549,6 +549,9 @@ pub fn add(
         // get access to glib for dbus.
         if (self.config.flatpak) step.linkSystemLibrary2("gtk4", dynamic_link_opts);
 
+        // If we're targeting snap, we need the apparmor library.
+        if (self.config.snap) step.linkSystemLibrary2("apparmor", dynamic_link_opts);
+
         switch (self.config.app_runtime) {
             .none => {},
             .gtk => try self.addGtkNg(step),
@@ -593,6 +596,9 @@ fn addGtkNg(
 
     step.linkSystemLibrary2("gtk4", dynamic_link_opts);
     step.linkSystemLibrary2("libadwaita-1", dynamic_link_opts);
+
+    // If we're targeting snap, we need apparmor library.
+    if (self.config.snap) step.linkSystemLibrary2("apparmor", dynamic_link_opts);
 
     if (self.config.x11) {
         step.linkSystemLibrary2("X11", dynamic_link_opts);

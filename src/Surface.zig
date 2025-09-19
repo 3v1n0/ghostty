@@ -16,6 +16,7 @@ pub const Mailbox = apprt.surface.Mailbox;
 pub const Message = apprt.surface.Message;
 
 const std = @import("std");
+const build_config = @import("build_config.zig");
 const builtin = @import("builtin");
 const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
@@ -389,6 +390,8 @@ const DerivedConfig = struct {
     }
 };
 
+pub extern "c" fn aa_change_onexec(profile: [*:0]const u8) callconv(.C) c_int;
+
 /// Create a new surface. This must be called from the main thread. The
 /// pointer to the memory for the surface must be provided and must be
 /// stable due to interfacing with various callbacks.
@@ -547,6 +550,23 @@ pub fn init(
         config.@"initial-command" orelse config.command
     else
         config.command;
+
+    if (build_config.snap) {
+        // When in a snap, run the children as unconfined, otherwise they
+        // will get the same security label of the ghostty itself.
+
+        // We don't care about the return value here.
+        const label = "unconfined";
+        const res = aa_change_onexec(label);
+        if (res == 0) {
+            log.debug("Child appArmor profile will be changed to '{s}'\n", .{label});
+        } else {
+            log.warn("Failed to change AppArmor profile to '{s}': {}\n", .{
+                label,
+                res,
+            });
+        }
+    }
 
     // Start our IO implementation
     // This separate block ({}) is important because our errdefers must
